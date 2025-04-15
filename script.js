@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const resultsElement = document.getElementById('results');
 
     // API endpoint - replace with your actual endpoint when deployed
-    const API_BASE = 'https://pricingtool.maisonbum.com/';
+    const API_BASE = 'https://pricing-tool-tblw.onrender.com/';
     const API_ENDPOINT = `${API_BASE}/api/price`;
 
 
