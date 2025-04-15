@@ -35,6 +35,16 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    // Define the getModelDisplayName
+    function getModelDisplayName(modelId) {
+        const displayNames = {
+            claude: "Claude (Anthropic)",
+            gemini: "Gemini (Google)",
+            grok: "Grok (xAI)"
+        };
+        return displayNames[modelId] || modelId;
+    }   
+
     // Handle form submission
     form.addEventListener('submit', function (e) {
         e.preventDefault();
