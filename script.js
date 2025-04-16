@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const API_BASE = 'https://pricing-tool-tblw.onrender.com/';
     const API_ENDPOINT = `${API_BASE}/api/price`;
 
-
     // Check for available models
     fetchAvailableModels();
 
@@ -84,6 +83,10 @@ document.addEventListener('DOMContentLoaded', function () {
             body: JSON.stringify(requestData)
         })
             .then(response => {
+                if (response.status === 401) {
+                    window.location.href = '/login'; // Redirect to login on unauthorized
+                    throw new Error('Unauthorized');
+                }
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
@@ -121,6 +124,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         fetch(modelsEndpoint)
             .then(response => {
+                if (response.status === 401) {
+                    window.location.href = '/login'; // Redirect to login on unauthorized
+                    throw new Error('Unauthorized');
+                }
                 if (!response.ok) {
                     throw new Error('Failed to fetch available models');
                 }
@@ -306,4 +313,4 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
     }
-}); 
+});
