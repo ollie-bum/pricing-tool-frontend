@@ -13,7 +13,7 @@
             <h1>Maison Bum Bulk Pricing Tool</h1>
             <p>Upload a CSV file to get pricing for multiple luxury items</p>
             <a href="/logout" style="float: right; margin: 10px;">Logout</a>
-            <a href="/" style="float: right; margin: 10px;">Single Item Analysis</a>
+            <a href="https://pricingtool.maisonbum.com/pricing/single" style="float: right; margin: 10px;">Single Item Analysis</a>
         </header>
 
         <div class="main-content">
@@ -22,11 +22,19 @@
                 <form id="bulkForm">
                     <div class="form-group">
                         <label for="csvFile">Upload CSV File</label>
-                        <input type="file" id="csvFile" accept=".csv" required>
+                        <input type="file" id="csvFile" accept=".csv">
                         <p style="font-size: 0.9rem; color: var(--gray); margin-top: 8px;">
                             CSV Format: brand,model,condition,additional_details<br>
                             Example: Louis Vuitton,Neverfull MM,Excellent,Monogram canvas minimal wear
                         </p>
+                    </div>
+                    <div class="form-group">
+                        <label for="gcsBucket">GCS Bucket (Optional)</label>
+                        <input type="text" id="gcsBucket" name="gcs_bucket" placeholder="e.g., my-bucket">
+                    </div>
+                    <div class="form-group">
+                        <label for="gcsFilePath">GCS File Path (Optional)</label>
+                        <input type="text" id="gcsFilePath" name="gcs_file_path" placeholder="e.g., path/to/file.csv">
                     </div>
                     <button type="submit" class="submit-button" id="submitButton">
                         Process Bulk Pricing
