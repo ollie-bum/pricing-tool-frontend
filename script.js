@@ -13,8 +13,8 @@ document.addEventListener('DOMContentLoaded', function () {
     console.log('pricingForm:', pricingForm);
     console.log('bulkForm:', bulkForm);
 
-    // API endpoint
-    const API_BASE = 'https://pricing-tool-tblw.onrender.com/';
+    // Dynamically set API base based on current host
+    const API_BASE = window.location.origin;
     const API_ENDPOINT = `${API_BASE}/api/price`;
     const BULK_API_ENDPOINT = `${API_BASE}/api/bulk_price`;
 
@@ -128,12 +128,8 @@ document.addEventListener('DOMContentLoaded', function () {
             e.preventDefault();
 
             const fileInput = document.getElementById('csvFile');
-            const file = fileInput.files[0];
-            if (!file) {
-                errorMessage.innerText = 'Please select a CSV file.';
-                errorElement.style.display = 'block';
-                return;
-            }
+            const gcsBucket = document.getElementById('gcsBucket').value;
+            const gcsFilePath = document.getElementById('gcsFilePath').value;
 
             // Show loading state
             submitButton.disabled = true;
@@ -144,7 +140,21 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Prepare form data
             const formData = new FormData();
-            formData.append('file', file);
+            if (gcsBucket && gcsFilePath) {
+                formData.append('gcs_bucket', gcsBucket);
+                formData.append('gcs_file_path', gcsFilePath);
+            } else {
+                const file = fileInput.files[0];
+                if (!file) {
+                    errorMessage.innerText = 'Please select a CSV file or provide GCS details.';
+                    errorElement.style.display = 'block';
+                    submitButton.disabled = false;
+                    submitButton.innerText = 'Process Bulk Pricing';
+                    loadingElement.style.display = 'none';
+                    return;
+                }
+                formData.append('file', file);
+            }
 
             // Call the bulk API
             fetch(BULK_API_ENDPOINT, {
@@ -293,8 +303,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 <td>${product.brand}</td>
                 <td>${product.model}</td>
                 <td>${product.condition}</td>
-                ${error ? `
-                    <td colspan="5" class="error-cell">${error}</td>
+                ${error || !result || !result.buy_price ? `
+                    <td colspan="5" class="error-cell">${error || 'Invalid result data'}</td>
                 ` : `
                     <td>${formatCurrency(result.buy_price.min)} - ${formatCurrency(result.buy_price.max)}</td>
                     <td>${formatCurrency(result.max_profit_price.min)} - ${formatCurrency(result.max_profit_price.max)}</td>
