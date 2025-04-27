@@ -1,19 +1,22 @@
 // script.js
 document.addEventListener('DOMContentLoaded', function () {
-    // Get form and elements
-    const form = document.getElementById('pricingForm');
+    // Get elements for single item form (index.html)
+    const pricingForm = document.getElementById('pricingForm');
+    const bulkForm = document.getElementById('bulkForm');
     const submitButton = document.getElementById('submitButton');
     const loadingElement = document.getElementById('loading');
     const errorElement = document.getElementById('error');
     const errorMessage = document.getElementById('errorMessage');
     const resultsElement = document.getElementById('results');
 
-    // API endpoint - replace with your actual endpoint when deployed
+    // Debug form detection
+    console.log('pricingForm:', pricingForm);
+    console.log('bulkForm:', bulkForm);
+
+    // API endpoint
     const API_BASE = 'https://pricing-tool-tblw.onrender.com/';
     const API_ENDPOINT = `${API_BASE}/api/price`;
-
-    // Check for available models
-    fetchAvailableModels();
+    const BULK_API_ENDPOINT = `${API_BASE}/api/bulk_price`;
 
     // Format currency
     function formatCurrency(value) {
@@ -42,90 +45,154 @@ document.addEventListener('DOMContentLoaded', function () {
             grok: "Grok (xAI)"
         };
         return displayNames[modelId] || modelId;
-    }   
+    }
 
-    // Handle form submission
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
+    // Handle single item form submission (index.html)
+    if (pricingForm) {
+        console.log('Setting up pricingForm event listener');
+        // Check for available models
+        fetchAvailableModels();
 
-        // Get form values
-        const brand = document.getElementById('brand').value;
-        const model = document.getElementById('model').value;
-        const condition = document.getElementById('condition').value;
-        const additionalDetails = document.getElementById('additionalDetails').value;
+        pricingForm.addEventListener('submit', function (e) {
+            e.preventDefault();
 
-        // Get selected LLM models
-        const selectedModels = getSelectedModels();
+            // Get form values
+            const brand = document.getElementById('brand').value;
+            const model = document.getElementById('model').value;
+            const condition = document.getElementById('condition').value;
+            const additionalDetails = document.getElementById('additionalDetails').value;
 
-        // Show loading state
-        submitButton.disabled = true;
-        submitButton.innerText = 'Analyzing...';
-        loadingElement.style.display = 'flex';
-        errorElement.style.display = 'none';
-        resultsElement.style.display = 'none';
+            // Get selected LLM models
+            const selectedModels = getSelectedModels();
 
-        // Prepare request data
-        const requestData = {
-            brand,
-            model,
-            condition,
-            additional_details: additionalDetails,
-            use_sources: selectedModels,
-            skip_cache: document.getElementById('skipCache').checked
-        };
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.innerText = 'Analyzing...';
+            loadingElement.style.display = 'flex';
+            errorElement.style.display = 'none';
+            resultsElement.style.display = 'none';
 
-        // Call the API
-        fetch(API_ENDPOINT, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(requestData)
-        })
-            .then(response => {
-                if (response.status === 401) {
-                    window.location.href = '/login'; // Redirect to login on unauthorized
-                    throw new Error('Unauthorized');
-                }
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-                return response.json();
+            // Prepare request data
+            const requestData = {
+                brand,
+                model,
+                condition,
+                additional_details: additionalDetails,
+                use_sources: selectedModels,
+                skip_cache: document.getElementById('skipCache').checked
+            };
+
+            // Call the API
+            fetch(API_ENDPOINT, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
             })
-            .then(data => {
-                // Display results
-                displayResults(data.results);
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        throw new Error('Unauthorized');
+                    }
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Display results
+                    displayResults(data.results);
 
-                // Show source information
-                showSourceInfo(data);
-            })
-            .catch(error => {
-                // Show error
-                errorMessage.innerText = error.message || 'An error occurred while fetching the price analysis.';
+                    // Show source information
+                    showSourceInfo(data);
+                })
+                .catch(error => {
+                    // Show error
+                    errorMessage.innerText = error.message || 'An error occurred while fetching the price analysis.';
+                    errorElement.style.display = 'block';
+                })
+                .finally(() => {
+                    // Reset UI state
+                    submitButton.disabled = false;
+                    submitButton.innerText = 'Get Price Analysis';
+                    loadingElement.style.display = 'none';
+                });
+        });
+    }
+
+    // Handle bulk form submission (bulk.html)
+    if (bulkForm) {
+        console.log('Setting up bulkForm event listener');
+        bulkForm.addEventListener('submit', function (e) {
+            e.preventDefault();
+
+            const fileInput = document.getElementById('csvFile');
+            const file = fileInput.files[0];
+            if (!file) {
+                errorMessage.innerText = 'Please select a CSV file.';
                 errorElement.style.display = 'block';
-            })
-            .finally(() => {
-                // Reset UI state
-                submitButton.disabled = false;
-                submitButton.innerText = 'Get Price Analysis';
-                loadingElement.style.display = 'none';
-            });
-    });
+                return;
+            }
 
-    // Get selected LLM models
+            // Show loading state
+            submitButton.disabled = true;
+            submitButton.innerText = 'Processing...';
+            loadingElement.style.display = 'flex';
+            errorElement.style.display = 'none';
+            resultsElement.style.display = 'none';
+
+            // Prepare form data
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Call the bulk API
+            fetch(BULK_API_ENDPOINT, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        throw new Error('Unauthorized');
+                    }
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.error) {
+                        throw new Error(data.error);
+                    }
+                    displayBulkResults(data.results);
+                })
+                .catch(error => {
+                    errorMessage.innerText = error.message || 'An error occurred while processing the bulk pricing.';
+                    errorElement.style.display = 'block';
+                })
+                .finally(() => {
+                    submitButton.disabled = false;
+                    submitButton.innerText = 'Process Bulk Pricing';
+                    loadingElement.style.display = 'none';
+                });
+        });
+    }
+
+    // Get selected LLM models (for single item form)
     function getSelectedModels() {
         const checkboxes = document.querySelectorAll('.llm-checkbox:checked');
         return Array.from(checkboxes).map(checkbox => checkbox.value);
     }
 
-    // Fetch available models from the API
+    // Fetch available models from the API (for single item form)
     function fetchAvailableModels() {
         const modelsEndpoint = `${API_BASE}/api/models`;
 
         fetch(modelsEndpoint)
             .then(response => {
                 if (response.status === 401) {
-                    window.location.href = '/login'; // Redirect to login on unauthorized
+                    window.location.href = '/login';
                     throw new Error('Unauthorized');
                 }
                 if (!response.ok) {
@@ -138,7 +205,6 @@ document.addEventListener('DOMContentLoaded', function () {
             })
             .catch(error => {
                 console.error('Error fetching available models:', error);
-                // If we can't fetch models, assume only Claude is available
                 const checkboxes = document.querySelectorAll('.llm-checkbox');
                 checkboxes.forEach(checkbox => {
                     if (checkbox.value !== 'claude') {
@@ -150,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
             });
     }
 
-    // Update UI based on available models
+    // Update UI based on available models (for single item form)
     function updateModelAvailability(models) {
         models.forEach(model => {
             const checkbox = document.getElementById(`${model.id}Model`);
@@ -165,29 +231,24 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Display the results in the UI
+    // Display single item results (index.html)
     function displayResults(results) {
-        // Buy price
         document.getElementById('buyPriceRange').innerText =
             `${formatCurrency(results.buy_price.min)} - ${formatCurrency(results.buy_price.max)}`;
         document.getElementById('buyPriceExplanation').innerText = results.buy_price.explanation;
 
-        // Max profit price
         document.getElementById('maxProfitRange').innerText =
             `${formatCurrency(results.max_profit_price.min)} - ${formatCurrency(results.max_profit_price.max)}`;
         document.getElementById('maxProfitExplanation').innerText = results.max_profit_price.explanation;
 
-        // Quick sale price
         document.getElementById('quickSaleRange').innerText =
             `${formatCurrency(results.quick_sale_price.min)} - ${formatCurrency(results.quick_sale_price.max)}`;
         document.getElementById('quickSaleExplanation').innerText = results.quick_sale_price.explanation;
 
-        // Expected sale price
         document.getElementById('expectedSaleRange').innerText =
             `${formatCurrency(results.expected_sale_price.min)} - ${formatCurrency(results.expected_sale_price.max)}`;
         document.getElementById('expectedSaleExplanation').innerText = results.expected_sale_price.explanation;
 
-        // Time to sell
         if (results.estimated_time_to_sell) {
             document.getElementById('timeToSellRange').innerText =
                 formatTimeRange(
@@ -199,12 +260,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 results.estimated_time_to_sell.explanation;
         }
 
-        // Market analysis
         document.getElementById('marketAnalysis').innerText = results.market_analysis;
 
-        // Factors
         const factorsList = document.getElementById('factorsList');
-        factorsList.innerHTML = ''; // Clear existing list
+        factorsList.innerHTML = '';
 
         results.factors.forEach(factor => {
             const li = document.createElement('li');
@@ -212,31 +271,57 @@ document.addEventListener('DOMContentLoaded', function () {
             factorsList.appendChild(li);
         });
 
-        // Add model info if available
         if (results.meta && results.meta.models_used) {
             addModelInfoToResults(results.meta);
         }
 
-        // Show results
         resultsElement.style.display = 'block';
     }
 
-    // Add model info to results
+    // Display bulk results (bulk.html)
+    function displayBulkResults(results) {
+        const tbody = document.getElementById('resultsTableBody');
+        tbody.innerHTML = ''; // Clear previous results
+
+        results.forEach(item => {
+            const row = document.createElement('tr');
+            const product = item.product;
+            const result = item.results;
+            const error = item.error;
+
+            row.innerHTML = `
+                <td>${product.brand}</td>
+                <td>${product.model}</td>
+                <td>${product.condition}</td>
+                ${error ? `
+                    <td colspan="5" class="error-cell">${error}</td>
+                ` : `
+                    <td>${formatCurrency(result.buy_price.min)} - ${formatCurrency(result.buy_price.max)}</td>
+                    <td>${formatCurrency(result.max_profit_price.min)} - ${formatCurrency(result.max_profit_price.max)}</td>
+                    <td>${formatCurrency(result.quick_sale_price.min)} - ${formatCurrency(result.quick_sale_price.max)}</td>
+                    <td>${formatCurrency(result.expected_sale_price.min)} - ${formatCurrency(result.expected_sale_price.max)}</td>
+                    <td>${formatTimeRange(result.estimated_time_to_sell.min, result.estimated_time_to_sell.max, result.estimated_time_to_sell.unit)}</td>
+                `}
+                <td>${product.additional_details || 'N/A'}</td>
+            `;
+
+            tbody.appendChild(row);
+        });
+
+        resultsElement.style.display = 'block';
+    }
+
+    // Add model info to results (for single item form)
     function addModelInfoToResults(meta) {
-        // Check if meta-info section already exists
         let metaInfoSection = document.querySelector('.meta-info');
 
         if (!metaInfoSection) {
-            // Create meta info section
             metaInfoSection = document.createElement('div');
             metaInfoSection.className = 'meta-info';
-
-            // Add it after market analysis
             const marketAnalysis = document.querySelector('.market-analysis');
             marketAnalysis.appendChild(metaInfoSection);
         }
 
-        // Create content for meta info section
         let metaContent = '<h4>AI Models Used</h4><ul class="models-used">';
 
         meta.models_used.forEach(model => {
@@ -246,13 +331,11 @@ document.addEventListener('DOMContentLoaded', function () {
 
         metaContent += '</ul>';
 
-        // Add timestamp if available
         if (meta.timestamp) {
             const date = new Date(meta.timestamp);
             metaContent += `<div class="timestamp">Analysis generated: ${date.toLocaleString()}</div>`;
         }
 
-        // Add variation info if available
         if (meta.price_range_variation) {
             metaContent += '<div class="variation-info"><h4>Model Agreement</h4>';
 
@@ -273,7 +356,6 @@ document.addEventListener('DOMContentLoaded', function () {
                         agreement = 'Medium';
                     }
 
-                    // Get human-readable price category name
                     let categoryName = category.replace('_price', '').replace('_', ' ');
                     if (category === 'estimated_time_to_sell') {
                         categoryName = 'Time to Sell';
@@ -289,19 +371,16 @@ document.addEventListener('DOMContentLoaded', function () {
             metaContent += '</div>';
         }
 
-        // Add to page
         metaInfoSection.innerHTML = metaContent;
     }
 
-    // Show source information
+    // Show source information (for single item form)
     function showSourceInfo(data) {
-        // Remove any existing badge
         const existingBadge = document.querySelector('.source-badge');
         if (existingBadge) {
             existingBadge.remove();
         }
 
-        // Create source badge
         let sourceBadge = document.createElement('div');
         sourceBadge.className = 'source-badge';
 
