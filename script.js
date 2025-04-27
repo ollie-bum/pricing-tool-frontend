@@ -50,8 +50,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // Handle single item form submission (index.html)
     if (pricingForm) {
         console.log('Setting up pricingForm event listener');
-        // Check for available models
-        fetchAvailableModels();
+        // Delay fetching models to ensure session cookie is set
+        setTimeout(fetchAvailableModels, 500);
 
         pricingForm.addEventListener('submit', function (e) {
             e.preventDefault();
